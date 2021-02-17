@@ -102,11 +102,6 @@ public class binary_search_tree: binary_tree<int>
         {
             binary_search_node temp = new binary_search_node(i);
             insert_data(root, temp, null);
-            /*if (root == null) { root = new binary_search_node(i); }
-            else
-            {
-                insert(i);
-            }*/
         }
     }
     public void pre_order_to_tree(int[] arr)
