@@ -8,9 +8,12 @@ public class run : MonoBehaviour
     void Start()
     {
         btree tr = new btree(4);
-        int[] a = new int[] { 4, 8, 26, 11, 2, 16, 17, 5, 1, 19, 23, 20, 3, 12, 14, 25, 13 };
-        //int[] a = new int[] { 4, 8, 26, 11, 2, 16, 17, 5, 1, 19, 23, 20, 3 ,12};
+        int[] a = new int[] { 4, 5, 10, 14, 15, 20, 23, 27, 50, 51, 52, 60, 64, 65, 70, 72, 73, 80, 81,
+                                82, 90, 92, 93, 95, 100, 110, 6, 16, 68, 75, 77, 78, 79, 89, 111 };
         foreach (int i in a) { tr.insert(i); }
+        //int[] b = new int[] { 64, 23, 72, 65, 20};
+        int[] b = new int[] { 82, 81};
+        foreach (int i in b) { tr.delete(i); }
         tr.printing();
 
     }
