@@ -139,31 +139,64 @@ public class btree : MonoBehaviour
     }
     public void delete(int data)
     {
-        delete_element(data, false);
+        delete_element(data);
     }
-    void delete_element(int data, bool remix)
+    void delete_element(int data)
     {
         List<btree_node> nodes = path(data);
         btree_node main = nodes[0];
         if (!main.keys.Contains(data)) { print("not present"); return; }
         else if ((main.isleaf && main.keys.Count > min_keys) || (main == root && main.keys.Count > 1) || (main == root && main.children.Length == 0))
         { main.keys.Remove(data); main.keys.Sort(); }
-        else if ((main.isleaf && main != root) || remix )
+        else if ((main.isleaf && main != root) )
         {
-            bool temp=leaf_delete(nodes[1], main, root);
+            bool temp=leaf_delete(nodes[1], main);
             if (!temp) { leaf_mix(data, nodes[1], main); }
             else { main.keys.Remove(data); main.keys.Sort(); }
+        }
+        else
+        {
+            int temp_index = Array.IndexOf(main.keys.ToArray(), data);
+            int temp = 0;
+            temp = max_value_of_left(main.children[temp_index]);
+            delete_element(temp);
+            List<btree_node> temp_nodes = path(data);
+            temp_nodes[0].keys.Remove(data);
+            temp_nodes[0].keys.Add(temp);
+            temp_nodes[0].keys.Sort();          
         }
 
     }
 
     private void leaf_mix(int data, btree_node upper_node, btree_node main)
     {
+        bool con = upper_node == root && upper_node.keys.Count == 1;
+        btree_node upper_upper_node = null;
+        if (upper_node.keys.Count == 1 && main != null) { upper_upper_node = path(data)[2]; }
+        bool leaf_condition = true;
         int index = Array.IndexOf(upper_node.children, main);
         List<int> new_key = new List<int>();
-        if (index != 0) { foreach (int insert in upper_node.children[index - 1].keys) { new_key.Add(insert); } }
-        else { foreach (int insert in upper_node.children[index + 1].keys) { new_key.Add(insert); } }
+        List<btree_node> my_children = new List<btree_node>();
+        if (index != 0)
+        {
+            foreach (int insert in upper_node.children[index - 1].keys) { new_key.Add(insert); }
+            if (real_children(upper_node.children[index - 1].children).Count > 0)
+            {
+                leaf_condition = false;
+                foreach (btree_node child in real_children(upper_node.children[index - 1].children)) { my_children.Add(child); }
+            }
+        }
         foreach (int insert in main.keys) { new_key.Add(insert); }
+        foreach (btree_node child in real_children(main.children)) { my_children.Add(child); leaf_condition = false; }
+        if (index==0)
+        {
+            if (real_children(upper_node.children[index + 1].children).Count > 0)
+            {
+                leaf_condition = false;
+                foreach (btree_node child in real_children(upper_node.children[index + 1].children)) { my_children.Add(child); }
+            }
+            foreach (int insert in upper_node.children[index + 1].keys) { new_key.Add(insert); }
+        }
         if (index != 0) { new_key.Add(upper_node.keys[index - 1]); upper_node.keys.RemoveAt(index - 1); }
         else { new_key.Add(upper_node.keys[index]); upper_node.keys.RemoveAt(index); }
         new_key.Remove(data);
@@ -171,6 +204,7 @@ public class btree : MonoBehaviour
         new_key.Sort();
         btree_node new_child = new btree_node(max_keys);
         new_child.keys = new_key;
+        if (!leaf_condition) { new_child.isleaf = false; }
         btree_node[] children = new btree_node[max_keys + 2];
         for (int i = 0, q = 0; q < max_keys + 2; i++, q++)
         {
@@ -182,15 +216,34 @@ public class btree : MonoBehaviour
             else { children[i] = upper_node.children[q]; }
         }
         upper_node.children = children;
-        if (upper_node.keys.Count < min_keys)
+        new_child.children = new btree_node[max_keys + 2];
+        for (int q = 0; q < my_children.Count; q++) { new_child.children[q] = my_children[q]; }
+        if (con ) { root = new_child; return; }
+        if (upper_node.keys.Count < min_keys && upper_node !=root)
         {
-            bool temp = leaf_delete(path(data)[2], upper_node, root);
-            //if (!temp) { leaf_mix(data, upper_node, upper_node); }
+            if (upper_upper_node != null)
+            {
+                bool temp = leaf_delete(upper_upper_node, upper_node);
+                if (!temp)
+                {
+                    leaf_mix(data, upper_upper_node, upper_node);
+                }
+            }
+            else
+            {
+                int temp_index = Array.IndexOf(path(data).ToArray(), upper_node);
+                bool temp = leaf_delete(path(data)[temp_index + 1], upper_node);
+                if (!temp)
+                {
+                    leaf_mix(data, path(data)[temp_index + 1], upper_node);
+                }
+            }
         }
     }
 
-    private bool leaf_delete(btree_node upper_node, btree_node main, btree_node temp)
+    private bool leaf_delete(btree_node upper_node, btree_node main)
     {
+        btree_node temp = root;
         int index= Array.IndexOf(upper_node.children, main);
         string type = "";
         if (upper_node.children[0] != main)
@@ -198,7 +251,7 @@ public class btree : MonoBehaviour
             temp = upper_node.children[index - 1];
             if (temp.keys.Count > min_keys) { type = "max"; }
         }
-        if (last_real(upper_node.children) != main && type == "")
+        if (type == "")
         {
             temp = upper_node.children[index + 1];
             if (temp!=null && temp.keys.Count > min_keys) { type = "min"; }
@@ -210,8 +263,9 @@ public class btree : MonoBehaviour
             if (type == "max")
             {
                 foreach (btree_node child in main.children) { right_c.Add(child); }
-                btree_node going_element = last_real(temp.children);
-                right_c.Insert(0,going_element);
+                List<btree_node> going_element = real_children(temp.children);
+                going_element.Reverse();
+                if (going_element.Count > 0) { right_c.Insert(0, going_element[0]); }
                 int temp_index = Array.IndexOf(temp.children, going_element);
                 for(int i = 0; i < temp_index; i++) { left_c.Add(temp.children[i]); }
                 for(int i = temp_index; i < max_keys + 2; i++) { left_c.Add(null); }
@@ -219,8 +273,9 @@ public class btree : MonoBehaviour
             else
             {
                 foreach (btree_node child in main.children) { left_c.Add(child); }
-                left_c.Add(temp.children[0]);
+                left_c.Insert(real_children(main.children).Count,temp.children[0]);
                 for (int i = 1; i < max_keys + 2; i++) { right_c.Add(temp.children[i]); }
+                right_c.Add(null);
             }
             int removable_data = 0;
             if (type == "max") { removable_data = temp.keys[temp.keys.Count - 1]; }
@@ -229,6 +284,8 @@ public class btree : MonoBehaviour
             upper_node.keys.Add(removable_data);
             upper_node.keys.Sort();
             index = upper_node.keys.IndexOf(removable_data);
+            main.children =new btree_node [max_keys+2];
+            temp.children =new btree_node [max_keys+2];
             if (type == "max") 
             {
                 removable_data = upper_node.keys[++index];
@@ -248,13 +305,25 @@ public class btree : MonoBehaviour
         }
         else { return false; }
     }
-
-    btree_node last_real(btree_node[] children)
+    int max_value_of_left(btree_node current)
     {
-        btree_node temp = new btree_node(max_keys);
+        int temp = 0;
+        while (current != null)
+        {
+            temp = current.keys[current.keys.Count - 1];
+            List<btree_node> current_list = real_children(current.children);
+            if (current_list.Count < 1) { break; }
+            current_list.Reverse();
+            current = current_list[0];
+        }
+        return temp;
+    }
+    List<btree_node> real_children(btree_node[] children)
+    {
+        List<btree_node> temp = new List<btree_node>(max_keys);
         foreach(btree_node child in children)
         {
-            if (child != null) { temp = child; }
+            if (child != null) { temp.Add(child); }
         }
         return temp;
     }
@@ -287,7 +356,6 @@ public class btree : MonoBehaviour
     {
         Queue<btree_node> qu = new Queue<btree_node>();
         qu.Enqueue(root);
-        int i = 0;
         while (qu.Count > 0)
         {
             btree_node temp = qu.Dequeue();
@@ -303,7 +371,6 @@ public class btree : MonoBehaviour
                 print(r);
             }
             //else { print("=="); }
-            i++;
         }
     }
 }
