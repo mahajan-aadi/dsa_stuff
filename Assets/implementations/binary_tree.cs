@@ -9,10 +9,12 @@ public class binary_tree <T>: MonoBehaviour
     public class binary_node<T>
     {
         public int bf = 0;
+        public enum Colour { red, black };
+        public Colour Colors;
         public binary_node<T> left = null;
         public binary_node<T> right = null;
         public T data;
-        public binary_node(T data) { this.data = data; }
+        public binary_node(T data) { this.data = data;this.Colors = Colour.black; }
         public void set_left(T data)
         {
             this.left = new binary_node<T>(data);
@@ -28,6 +30,7 @@ public class binary_tree <T>: MonoBehaviour
     public binary_tree(T root_data)
     {
         root = new binary_node<T>(root_data);
+        root.Colors = binary_node<T>.Colour.black;
     }
     public binary_tree(){}
     public binary_tree(binary_node<T> root_node) { root = root_node; }
@@ -65,6 +68,10 @@ public class binary_tree <T>: MonoBehaviour
         {
             data += node.data;
             data += "  ";
+            data += node.Colors;
+            data += "  ";
+
+
             preorder_traversal(node.left);
             preorder_traversal(node.right);
         }

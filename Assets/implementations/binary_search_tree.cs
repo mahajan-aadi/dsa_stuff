@@ -7,7 +7,9 @@ public class binary_search_tree: binary_tree<int>
 {
     public class binary_search_node : binary_node<int>
     {
-        public binary_search_node(int data) : base(data) { }
+        public binary_search_node(int data) : base(data) 
+        {
+        }
         public void set_right(int data) { return; }
         public void set_left(int data) { return; }
     }
