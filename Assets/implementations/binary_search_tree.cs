@@ -42,55 +42,54 @@ public class binary_search_tree: binary_tree<int>
         remove(root, data,root);
     }
 
-    void remove(binary_node<int> node, int data,binary_node<int> base_node)
+    protected binary_node<int> remove(binary_node<int> node, int data,binary_node<int> base_node)
     {
-        if (root.data == data)
+        if (root.data == data && height(root) < 2)
         {
-            if (root.left == null) { root = root.right;return; }
-            else if (root.right == null) { root = root.left;return; }
-        }
-        if (node == null) { return; }
-        if (node.data > data) { remove(node.left, data,node); }
-        else if (node.data < data) { remove(node.right, data,node); }
-        else if (node.data == data)
-        {
-            if(node.left == null)
+            if (root.left == null && root.right == null)
             {
-                if (base_node.data > node.data)
-                {
-                    base_node.left = node.right;
-                    node = null;
-                }
-                else
-                {
-                    base_node.right = node.right;
-                    node = null;
-                }
+                root = null;
+                return root;
             }
-            else if (node.right == null)
+            else if (root.left == null)
             {
-                if (base_node.data > node.data)
-                {
-                    base_node.left = node.left;
-                    node = null;
-                }
-                else
-                {
-                    base_node.right = node.left;
-                    node = null;
-                }
+                root = root.right;
+                return root.right; 
+            }
+            else if (root.right == null) 
+            {
+                root = root.left;
+                return root.left;
+            }
+        }
+        if (node == null) { return base_node; }
+        if (node.data > data) { return remove(node.left, data,node); }
+        else if (node.data < data) { return remove(node.right, data,node); }
+        else
+        {
+            if(height(node)==0)
+            {
+                node = null;
+                return node;
             }
             else
             {
-                node.data = min_value(node.right);
-                remove(node.right, node.data,node);
+                int temp_data = min_value(node.right);
+                binary_node<int> temp_node = node.right;
+                if (node.data == temp_data) { temp_data = max_value(node.left);temp_node = node.left; }
+                node.data = temp_data;
+                return (remove(temp_node, node.data,node));
             }
         }
-        return;
     }
-    int min_value(binary_node<int> node)
+    protected int min_value(binary_node<int> node)
     {
         while (node.left != null) { node = node.left; }
+        return node.data;
+    }
+    protected int max_value(binary_node<int> node)
+    {
+        while (node.right != null) { node = node.right; }
         return node.data;
     }
     public void post_order_to_tree(int[] arr)
