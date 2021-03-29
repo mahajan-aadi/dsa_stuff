@@ -9,6 +9,7 @@ public class red_black_tree : binary_search_tree
     binary_node<int>.Colour red = binary_node<int>.Colour.red;
 
     public red_black_tree(int data) : base(data) { }
+    public red_black_tree() { }
     public override void insert(int data)
     {
         binary_search_node temp = new binary_search_node(data);
@@ -95,6 +96,7 @@ public class red_black_tree : binary_search_tree
     private (binary_node<int>.Colour, binary_node<int>) sibling_color(binary_node<int> temp, binary_node<int> parent)
     {
         binary_node<int> side;
+        //print(parent.data + "   " + temp.data);
         if (parent.left == temp) { side = parent.right; }
         else { side = parent.left; }
         if (side == null) { return (black,null); }
@@ -109,22 +111,32 @@ public class red_black_tree : binary_search_tree
     private void remove_conditions(List<binary_node<int>> temp_path)
     {
         binary_node<int> main_node = temp_path[temp_path.Count - 1];
-        if (height(main_node) == 0)
+        if (main_node == root && height(main_node) == 1) { root = null; return; }
+        else if (main_node.Colors == red && height(main_node) == 1)
         {
-            if (main_node == root) { root = null; return; }
-            else if (main_node.Colors == red) { main_node = null; return; }
+            binary_node<int> base_node = temp_path[temp_path.Count - 2];
+            int temp_data = main_node.data;
+            if (base_node.data > temp_data) { base_node.left = null; }
+            else { base_node.right = null; }
+            main_node = null; return; 
         }
         else
         {
-            int temp_data = min_value(main_node.right);
-            binary_node<int> temp_node = main_node.right;
-            if (main_node.data == temp_data) { temp_data = max_value(main_node.left); temp_node = main_node.left; }
-            remove_conditions(path(temp_node));
-            main_node.data = temp_data;
+            int temp_data=0;
+            binary_node<int> temp_node=null;
+            if (height(main_node) > 1 && main_node.right != null) { temp_data = min_value(main_node.right); temp_node = main_node.right; }
+            if (temp_node == null && main_node.left != null) { temp_data = max_value(main_node.left); temp_node = main_node.left; }
+            if (height(main_node) == 1) { temp_node = main_node; temp_data = main_node.data; }
+            if (height(main_node) > 1) { remove_conditions(path(new binary_node<int>(temp_data))); main_node.data = temp_data; return; }
+            remove_conditions(path(temp_node),temp_node);
+            List<binary_node<int>> temp_path_remove = path(new binary_node<int>(temp_data));
+            binary_node<int> base_node;
+            if (temp_path_remove.Count < 2) { root = temp_path_remove[0]; base_node = root; }
+            else base_node = temp_path_remove[temp_path_remove.Count - 2];
+            if (base_node.data > temp_data) { base_node.left = null; }
+            else { base_node.right = null; }
             return;
         }
-        remove_conditions(temp_path, main_node);
-        main_node = null;
     }
 
     private void remove_conditions(List<binary_node<int>> temp_path, binary_node<int> main_node)
@@ -132,10 +144,29 @@ public class red_black_tree : binary_search_tree
         if (main_node == root) { main_node.Colors = black;return; }
         binary_node<int>.Colour side_color = black;
         binary_node<int> parent = temp_path[temp_path.Count - 2];
-        binary_node<int> grand_parent = temp_path[temp_path.Count - 2];
+        binary_node<int> grand_parent;
         binary_node<int> side = new binary_node<int>(0);
+        if (parent == root) { grand_parent = null; }
+        else { grand_parent = temp_path[temp_path.Count - 3]; }
+
         (side_color, side) = sibling_color(main_node, temp_path[temp_path.Count - 2]);
-        if (side_color == black && ((side.left == null) || side.left.Colors == black) && ((side.right == null) || side.right.Colors == black))
+        bool first_cond = false;
+        if (side == null) { first_cond = true; }
+        else if (side_color == black)
+        {
+            if ((side.left == null) && (side.right == null)) { first_cond = true; }
+            else if (side.left != null)
+            {
+                if ((side.right == null) && (side.left.Colors == black)) { first_cond = true; }
+            }
+            if (side.right != null)
+            {
+                if ((side.left == null) && (side.right.Colors == black)) { first_cond = true; }
+                else if ((side.right.Colors == black) && (side.left.Colors == black)) { first_cond = true; }
+            }
+
+        }
+        if (first_cond)
         {
             if (parent.Colors == red)
             {
@@ -159,41 +190,52 @@ public class red_black_tree : binary_search_tree
             if (parent.left == main_node) { temp = right_right(parent); }
             else { temp = left_left(parent); }
             if (parent == root) { temp = root; }
+            else if (grand_parent.data > temp.data) { grand_parent.left = temp; }
+            else { grand_parent.right = temp; }
             main_node.Colors = black;
+            root.Colors = black;
             remove_conditions(path(main_node), main_node);
         }
         else if (side_color == black)
         {
             side.Colors = red;
-            binary_node<int> parent_side;
             binary_node<int> away;
             binary_node<int> close;
             binary_node<int> temp;
-            if (grand_parent.left == parent)
+            if (parent.left == main_node)
             {
-                parent_side = grand_parent.right;
-                close = parent_side.left;
-                away = parent_side.right;
+                close = side.left;
+                away = side.right;
             }
             else
             {
-                parent_side = grand_parent.left;
-                close = parent_side.right;
-                away = parent_side.left;
+                close = side.right;
+                away = side.left;
             }
+            if (away == null) { away = new binary_tree<int>.binary_node<int>(0); }
+            if (close == null) { close = new binary_tree<int>.binary_node<int>(0); }
             if (away.Colors == black && close.Colors == red)
             {
                 close.Colors = black;
-                parent_side.Colors = red;
-                if (grand_parent.left == parent) { left_left(parent_side); }
-                else { right_right(parent_side); }
+                side.Colors = red;
+                if (parent.left == side) { temp = right_right(side); }
+                else { temp = right_right(side); }
+                if (parent == root) { temp = root; }
+                else if (parent.data > temp.data) { parent.left = temp; }
+                else { parent.right = temp; }
+                root.Colors = black;
+                remove_conditions(path(main_node), main_node);
+                return;
             }
-            parent_side.Colors = grand_parent.Colors;
-            grand_parent.Colors = black;
-            if (grand_parent.left == parent) { temp = right_right(grand_parent); }
-            else { temp = left_left(grand_parent); }
-            if (grand_parent == root) { temp = root; }
+            side.Colors = parent.Colors;
+            parent.Colors = black;
+            if (parent.left == side) { temp = left_left(parent); }
+            else { temp = right_right(parent); }
+            if (parent == root) { root = temp; }
+            else if (grand_parent.data > temp.data) { grand_parent.left = temp; }
+            else { grand_parent.right = temp; }
             away.Colors = black;
+            root.Colors = black;
         }
     }
 }
